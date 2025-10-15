@@ -60,15 +60,21 @@ jobs:
           cluster-name: ${{ env.CLUSTER_NAME }}
           resource-group: ${{ env.RESOURCE_GROUP }}
 
-      # -----------------------------
+     # -----------------------------
       # STEP 6: Deploy MySQL + WebApp manifests
       # -----------------------------
       - name: Deploy MySQL and WebApp to AKS
         run: |
           echo "Applying MySQL manifests..."
-          kubectl apply -f aks/k8s-mysql-backend/webapp/mysql-db-pv.yaml
-          kubectl apply -f aks/k8s-mysql-backend/webapp/mysql-db-deployment.yaml
+          kubectl apply -f aks/k8s-mysql-backend/mysql-db-pv.yaml
+          kubectl apply -f aks/k8s-mysql-backend/mysql-db-deployment.yaml
 
           echo "Deploying WebApp..."
           # Update image dynamically
-          kubectl set image deployment/webapp webapp=${REGISTRY}/${IMAGE
+          kubectl set image deployment/webapp webapp=${REGISTRY}/${IMAGE_NAME}:${{ github.sha }} --record || true
+
+          # Apply webapp deployment (create if not exists)
+          kubectl apply -f aks/k8s-mysql-backend/webapp/webapp-deployment.yaml
+
+          # Wait for rollout to complete
+          kubectl rollout status deployment/webapp
