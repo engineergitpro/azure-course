@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: python-flask-app
-          image: demorgacr.azurecr.io/webapp:latest
+          image: demorgacr.azurecr.io/webapp:4e67f82452876ba9fbb89164bd43ffe0337491ea
           imagePullPolicy: Always
           ports:
             - containerPort: 8888
