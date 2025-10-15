@@ -50,6 +50,13 @@ jobs:
           docker build -t ${REGISTRY}/${IMAGE_NAME}:${{ github.sha }} aks/k8s-mysql-backend/webapp
           docker push ${REGISTRY}/${IMAGE_NAME}:${{ github.sha }}
 
+      # ✅ Add this new step right here
+      - name: Tag image as latest
+        run: |
+          az acr import \
+            --name demorgacr \
+            --source ${REGISTRY}/${IMAGE_NAME}:${{ github.sha }} \
+            --image ${IMAGE_NAME}:latest
       # -----------------------------
       # STEP 5: Set AKS context (connect to cluster)
       # -----------------------------
