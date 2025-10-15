@@ -8,8 +8,8 @@ on:
 env:
   REGISTRY: demorgacr.azurecr.io
   IMAGE_NAME: webapp
-  CLUSTER_NAME: clusterdemo-aks-cluster
-  RESOURCE_GROUP: <your-resource-group>
+  CLUSTER_NAME: demo-aks-cluster
+  RESOURCE_GROUP: demo-aks-rg
 
 jobs:
   build-and-deploy:
