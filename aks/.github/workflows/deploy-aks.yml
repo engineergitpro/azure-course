@@ -47,12 +47,12 @@ jobs:
         run: |
           kubectl apply -f ./aks/webapp/mysql-db-pv.yaml
           kubectl apply -f ./aks/webapp/mysql-db-deployment.yaml
-
-          # Update image in webapp manifest
+          
+          # Update image tag dynamically
           kubectl set image deployment/webapp webapp=$REGISTRY/$IMAGE_NAME:${{ github.sha }} --record || true
           
-          # If first deployment
+          # First time deployment
           kubectl apply -f ./aks/webapp/webapp-deployment.yaml
-
-          # Verify deployment
-          kubectl rollout status deployment/webapp
+          
+          # Wait until ready
+          kubectl rollo
