@@ -1,0 +1,58 @@
+name: Build and Deploy to AKS
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  REGISTRY: demorgacr.azurecr.io
+  IMAGE_NAME: webapp
+  CLUSTER_NAME: clusterdemo-aks-cluster
+  RESOURCE_GROUP: <your-resource-group>
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Log in to ACR
+        uses: azure/docker-login@v1
+        with:
+          login-server: ${{ env.REGISTRY }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Build and push Docker image
+        run: |
+          docker build -t $REGISTRY/$IMAGE_NAME:${{ github.sha }} ./aks/webapp
+          docker push $REGISTRY/$IMAGE_NAME:${{ github.sha }}
+
+      - name: Set AKS context
+        uses: azure/aks-set-context@v3
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          cluster-name: ${{ env.CLUSTER_NAME }}
+          resource-group: ${{ env.RESOURCE_GROUP }}
+
+      - name: Deploy MySQL and WebApp to AKS
+        run: |
+          kubectl apply -f ./aks/webapp/mysql-db-pv.yaml
+          kubectl apply -f ./aks/webapp/mysql-db-deployment.yaml
+
+          # Update image in webapp manifest
+          kubectl set image deployment/webapp webapp=$REGISTRY/$IMAGE_NAME:${{ github.sha }} --record || true
+          
+          # If first deployment
+          kubectl apply -f ./aks/webapp/webapp-deployment.yaml
+
+          # Verify deployment
+          kubectl rollout status deployment/webapp
