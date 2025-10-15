@@ -70,11 +70,11 @@ jobs:
           kubectl apply -f aks/k8s-mysql-backend/mysql-db-deployment.yaml
 
           echo "Deploying WebApp..."
-          # Update image dynamically
-          kubectl set image deployment/webapp webapp=${REGISTRY}/${IMAGE_NAME}:${{ github.sha }} --record || true
+          # Apply webapp deployment (create it if not exists)
+          kubectl apply -f aks/k8s-mysql-backend/webapp-deployment.yaml
 
-          # Apply webapp deployment (create if not exists)
-          kubectl apply -f aks/k8s-mysql-backend/webapp/webapp-deployment.yaml
+          # Update image dynamically (now it will exist)
+          kubectl set image deployment/webapp webapp=${REGISTRY}/${IMAGE_NAME}:${{ github.sha }} || true
 
           # Wait for rollout to complete
           kubectl rollout status deployment/webapp
