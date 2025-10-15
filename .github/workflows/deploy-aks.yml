@@ -1,10 +1,10 @@
 name: Build and Deploy to AKS
 
 on:
-  workflow_dispatch:
+  workflow_dispatch:      # allows manual "Run workflow" button
   push:
     branches:
-      - main
+      - main              # trigger automatically on pushes to main
 
 env:
   REGISTRY: demorgacr.azurecr.io
@@ -17,14 +17,23 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # -----------------------------
+      # STEP 1: Checkout source code
+      # -----------------------------
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # -----------------------------
+      # STEP 2: Login to Azure
+      # -----------------------------
       - name: Azure Login
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
+      # -----------------------------
+      # STEP 3: Login to Azure Container Registry
+      # -----------------------------
       - name: Log in to ACR
         uses: azure/docker-login@v1
         with:
@@ -32,7 +41,34 @@ jobs:
           username: ${{ secrets.REGISTRY_USERNAME }}
           password: ${{ secrets.REGISTRY_PASSWORD }}
 
-      # ✅ Build and push the image from correct path
+      # -----------------------------
+      # STEP 4: Build & Push Docker image to ACR
+      # -----------------------------
       - name: Build and push Docker image
         run: |
-          docker build -t $REGISTR
+          echo "Building Docker image for registry: $REGISTRY"
+          docker build -t ${REGISTRY}/${IMAGE_NAME}:${{ github.sha }} aks/k8s-mysql-backend/webapp
+          docker push ${REGISTRY}/${IMAGE_NAME}:${{ github.sha }}
+
+      # -----------------------------
+      # STEP 5: Set AKS context (connect to cluster)
+      # -----------------------------
+      - name: Set AKS context
+        uses: azure/aks-set-context@v3
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          cluster-name: ${{ env.CLUSTER_NAME }}
+          resource-group: ${{ env.RESOURCE_GROUP }}
+
+      # -----------------------------
+      # STEP 6: Deploy MySQL + WebApp manifests
+      # -----------------------------
+      - name: Deploy MySQL and WebApp to AKS
+        run: |
+          echo "Applying MySQL manifests..."
+          kubectl apply -f aks/k8s-mysql-backend/webapp/mysql-db-pv.yaml
+          kubectl apply -f aks/k8s-mysql-backend/webapp/mysql-db-deployment.yaml
+
+          echo "Deploying WebApp..."
+          # Update image dynamically
+          kubectl set image deployment/webapp webapp=${REGISTRY}/${IMAGE
